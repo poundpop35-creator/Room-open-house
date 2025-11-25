@@ -12,7 +12,7 @@
             --secondary-color: #f8f9fa; /* สีพื้นหลังอ่อนสำหรับตารางสลับสี */
             --text-color: #333; /* สีตัวอักษรทั่วไป */
             --border-color: #e9ecef; /* สีเส้นขอบ */
-            --card-shadow: 0 4px 12px rgba(0,0,0,0.1); /* เงาของการ์ด (เพิ่มให้ชัดขึ้นนิดหน่อย) */
+            --card-shadow: 0 4px 12px rgba(0,0,0,0.1); /* เงาของการ์ด */
         }
 
         body {
@@ -1285,4 +1285,236 @@
                 const hotelData = summary[hotel];
                 let typesHtml = '';
                 // เรียงลำดับการแสดงผลให้สวยงาม
-                const preferredOrder = ['พักเดี่ยว', 'พัก
+                const preferredOrder = ['พักเดี่ยว', 'พักคู่', 'พักเดี่ยว จ่ายส่วนต่าง'];
+                
+                preferredOrder.forEach(type => {
+                    if (hotelData.types[type]) {
+                         typesHtml += `
+                            <div class="summary-item">
+                                <span class="summary-label">
+                                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background-color:${type === 'พักเดี่ยว' ? '#28a745' : (type === 'พักคู่' ? '#17a2b8' : '#ffc107')};"></span>
+                                    ${type}
+                                </span>
+                                <span class="summary-count">${hotelData.types[type]} ห้อง</span>
+                            </div>`;
+                    }
+                });
+
+                // จัดการประเภทอื่นๆ ที่อาจหลุดมา (เผื่อไว้)
+                for (const type in hotelData.types) {
+                    if (!preferredOrder.includes(type)) {
+                         typesHtml += `
+                            <div class="summary-item">
+                                <span class="summary-label">${type}</span>
+                                <span class="summary-count">${hotelData.types[type]} ห้อง</span>
+                            </div>`;
+                    }
+                }
+
+                const cardHtml = `
+                    <div class="summary-card">
+                        <div class="summary-header">
+                            <span><i class="fas fa-hotel"></i> ${hotel}</span>
+                            <span class="summary-total-badge">รวม: ${hotelData.total} ห้อง</span>
+                        </div>
+                        <div class="summary-body">
+                            ${typesHtml}
+                        </div>
+                    </div>
+                `;
+                summarySection.innerHTML += cardHtml;
+            }
+        }
+
+        // ฟังก์ชันดึงรายชื่อจังหวัดทั้งหมด (ไม่ซ้ำ) เพื่อมาทำตัวเลือกใน Dropdown
+        function getUniqueProvinces(data) {
+            const provinces = new Set();
+            data.forEach(guest => {
+                // กรองข้อมูลจังหวัดที่ไม่ถูกต้องออก
+                if (guest['จังหวัดที่ตั้งของหน่วยงาน'] && guest['จังหวัดที่ตั้งของหน่วยงาน'] !== 'พักเดี่ยว จ่ายส่วนต่าง' && guest['จังหวัดที่ตั้งของหน่วยงาน'] !== 'พักเดี่ยว') {
+                    provinces.add(guest['จังหวัดที่ตั้งของหน่วยงาน']);
+                }
+            });
+            // เรียงตามตัวอักษร ก-ฮ
+            return Array.from(provinces).sort((a, b) => a.localeCompare(b, 'th'));
+        }
+
+        // ฟังก์ชันสร้างตัวเลือกใน Dropdown จังหวัด
+        function populateProvinceFilter(provinces) {
+            provinces.forEach(prov => {
+                const option = document.createElement('option');
+                option.value = prov;
+                option.textContent = prov;
+                provinceFilter.appendChild(option);
+            });
+        }
+
+        // ฟังก์ชันเรียงลำดับข้อมูลตามจังหวัด (ก-ฮ) ของผู้เข้าพักหลัก
+        function sortDataByProvince(data) {
+            return [...data].sort((a, b) => {
+                const provA = a['จังหวัดที่ตั้งของหน่วยงาน'] || '';
+                const provB = b['จังหวัดที่ตั้งของหน่วยงาน'] || '';
+                // เอาข้อมูลที่จังหวัดไม่ถูกต้องไปไว้ท้ายสุด
+                if (provA === 'พักเดี่ยว จ่ายส่วนต่าง' || provA === 'พักเดี่ยว') return 1;
+                if (provB === 'พักเดี่ยว จ่ายส่วนต่าง' || provB === 'พักเดี่ยว') return -1;
+                // เรียงตามตัวอักษรไทย
+                return provA.localeCompare(provB, 'th');
+            });
+        }
+
+        // --- ฟังก์ชันแสดงผล (Render View) ---
+
+        // ฟังก์ชันแสดงข้อมูลในรูปแบบการ์ด (ทั้ง Mobile และ PC)
+        function renderCards(data) {
+            cardContainer.innerHTML = '';
+            if (data.length === 0) {
+                noResultMsg.style.display = 'block';
+                return;
+            } else {
+                noResultMsg.style.display = 'none';
+            }
+
+            data.forEach(guest => {
+                const card = document.createElement('div');
+                card.className = 'guest-card';
+                
+                let fullName1 = guest['ชื่อ - สกุล'] || '(ไม่ระบุชื่อ)';
+                let dept1 = guest['หน่วยงาน'] || '-';
+                let prov1 = guest['จังหวัดที่ตั้งของหน่วยงาน'] || '-';
+
+                let fullName2 = guest['ชื่อ - สกุล__1'] || '-';
+                let dept2 = guest['หน่วยงาน__1'] || '-';
+                let prov2 = guest['จังหวัดที่ตั้งของหน่วยงาน__1'] || '-';
+                
+                const stayType = guest['ประเภทการเข้าพัก'] || '-';
+                const isTwin = stayType === 'พักคู่';
+
+                if (stayType.includes('เดี่ยว')) {
+                    fullName2 = '-';
+                    dept2 = '-';
+                    prov2 = '-';
+                }
+
+                const hotel = guest['โรงแรม'] || '-';
+                const roomNo = guest['เลขห้อง'] || '-';
+                const carReg = guest['ทะเบียนรถรับลส่ง\nที่พัก - กรมวิทย์'] || '-';
+
+                let stayTypeBadge = `<span class="badge">${stayType}</span>`;
+                if(stayType === 'พักเดี่ยว') stayTypeBadge = `<span class="badge badge-single">${stayType}</span>`;
+                else if (stayType.includes('จ่ายส่วนต่าง')) stayTypeBadge = `<span class="badge badge-single-pay">${stayType}</span>`;
+                else if (isTwin) stayTypeBadge = `<span class="badge badge-twin">${stayType}</span>`;
+
+                // สร้างส่วนแสดงรูมเมท (ถ้ามีและไม่ใช่พักเดี่ยว)
+                let roommateSection = '';
+                if (isTwin && fullName2 !== '-' && fullName2 !== 'พักเดี่ยว') {
+                    roommateSection = `
+                        <div class="roommate-section">
+                            <div class="roommate-header">ผู้เข้าพักร่วม (รูมเมท)</div>
+                            <div class="roommate-name">${fullName2}</div>
+                            <div class="roommate-org-prov">${dept2} <span class="badge badge-prov">${prov2}</span></div>
+                        </div>
+                    `;
+                }
+
+                // สร้าง HTML ของการ์ด
+                card.innerHTML = `
+                    <div class="card-header">
+                        <span class="seq-badge">ลำดับที่ ${guest['ลำดับ']}</span>
+                        ${stayTypeBadge}
+                    </div>
+                    <div class="main-guest-info">
+                        <div class="main-guest-name">${fullName1}</div>
+                        <div class="main-guest-org-prov">${dept1} <span class="badge badge-prov">${prov1}</span></div>
+                    </div>
+                    
+                    ${roommateSection}
+
+                    <div class="details-section">
+                        <div class="detail-item">
+                            <div class="detail-label">โรงแรม</div>
+                            <div class="detail-value">${hotel}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">เลขห้อง</div>
+                            <div class="detail-value" style="color: var(--primary-color);">${roomNo}</div>
+                        </div>
+                        <div class="detail-item" style="flex-basis: 100%;">
+                            <div class="detail-label">รถรับส่ง โรงแรม - กรมวิทย์</div>
+                            <div class="detail-value"><span class="badge badge-car">${carReg}</span></div>
+                        </div>
+                    </div>
+                `;
+                cardContainer.appendChild(card);
+            });
+        }
+
+        // --- ฟังก์ชันกรองข้อมูล (Filter & Search) ---
+        function filterAndSortGuests() {
+            const searchTerm = searchInput.value.toLowerCase().trim();
+            const selectedProvince = provinceFilter.value;
+
+            // 1. กรองข้อมูล
+            let filteredData = guestData.filter(guest => {
+                // กรองตามจังหวัดที่เลือก (ถ้ามี)
+                if (selectedProvince && guest['จังหวัดที่ตั้งของหน่วยงาน'] !== selectedProvince) {
+                    return false;
+                }
+
+                // กรองตามคำค้นหา (ถ้ามี)
+                if (searchTerm) {
+                    // เตรียมข้อมูลรูมเมทสำหรับค้นหา
+                    let roommateInfo = "";
+                    const stayType = guest['ประเภทการเข้าพัก'] || '';
+                    if (stayType && !stayType.includes('เดี่ยว')) {
+                        roommateInfo = `${guest['ชื่อ - สกุล__1'] || ''} ${guest['หน่วยงาน__1'] || ''} ${guest['จังหวัดที่ตั้งของหน่วยงาน__1'] || ''}`;
+                    }
+
+                    // รวมข้อมูลทั้งหมดเป็น string เดียวเพื่อค้นหา
+                    const searchableString = `
+                        ${guest['ชื่อ - สกุล'] || ''}
+                        ${guest['หน่วยงาน'] || ''}
+                        ${guest['จังหวัดที่ตั้งของหน่วยงาน'] || ''}
+                        ${roommateInfo}
+                        ${stayType}
+                        ${guest['โรงแรม'] || ''}
+                        ${guest['เลขห้อง'] || ''}
+                        ${guest['ทะเบียนรถรับลส่ง\nที่พัก - กรมวิทย์'] || ''}
+                    `.toLowerCase();
+                    
+                    // ถ้าไม่พบคำค้นหาใน string ให้ filter ออก
+                    if (!searchableString.includes(searchTerm)) {
+                        return false;
+                    }
+                }
+                return true; // ผ่านการกรอง
+            });
+
+            // 2. เรียงลำดับข้อมูลตามจังหวัด (ก-ฮ)
+            const sortedData = sortDataByProvince(filteredData);
+
+            // 3. แสดงผลข้อมูลที่กรองและเรียงแล้ว
+            renderCards(sortedData);
+        }
+
+        // --- Event Listeners (ดักจับเหตุการณ์) ---
+        // เมื่อพิมพ์ในช่องค้นหา
+        searchInput.addEventListener('keyup', filterAndSortGuests);
+        // เมื่อเลือกตัวกรองจังหวัด
+        provinceFilter.addEventListener('change', filterAndSortGuests);
+
+
+        // --- เริ่มต้นทำงาน (Initialization) ---
+        // 1. ดึงรายชื่อจังหวัดและสร้างตัวเลือกใน Dropdown
+        const uniqueProvinces = getUniqueProvinces(guestData);
+        populateProvinceFilter(uniqueProvinces);
+
+        // 2. คำนวณและแสดงผลสรุป (Summary Section) - ทำแค่ครั้งเดียวตอนโหลด
+        calculateAndRenderSummary(guestData);
+
+        // 3. เรียงลำดับข้อมูลเริ่มต้นตามจังหวัดและแสดงผลรายการ (Card View) ครั้งแรก
+        const initialSortedData = sortDataByProvince(guestData);
+        renderCards(initialSortedData);
+
+    </script>
+</body>
+</html>
