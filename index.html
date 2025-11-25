@@ -362,7 +362,7 @@
                         <th>ประเภทการพัก</th>
                         <th>โรงแรม</th>
                         <th>เลขห้อง</th>
-                        <th>ทะเบียนรถรับส่ง</th>
+                        <th>รถรับส่ง โรงแรม - กรมวิทย์</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody">
@@ -1548,6 +1548,7 @@
                 }
 
                 // สร้าง HTML ของการ์ด
+                // แก้ไขป้ายกำกับตรงนี้
                 card.innerHTML = `
                     <div class="card-header">
                         <span class="seq-badge">ลำดับที่ ${guest['ลำดับ']}</span>
@@ -1570,7 +1571,7 @@
                             <div class="detail-value" style="color: var(--primary-color);">${roomNo}</div>
                         </div>
                         <div class="detail-item" style="flex-basis: 100%;">
-                            <div class="detail-label">ทะเบียนรถรับส่ง</div>
+                            <div class="detail-label">รถรับส่ง โรงแรม - กรมวิทย์</div>
                             <div class="detail-value"><span class="badge badge-car">${carReg}</span></div>
                         </div>
                     </div>
