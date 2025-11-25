@@ -6,7 +6,7 @@
     <title>รายชื่อผู้เข้าพักและรถรับส่ง - Dmsc Open House</title>
     <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
-        /* --- CSS Styles (คงเดิมจากเวอร์ชันก่อนหน้า) --- */
+        /* --- CSS Styles --- */
         :root {
             --primary-color: #0056b3; /* สีหลัก */
             --secondary-color: #f8f9fa; /* สีพื้นหลังอ่อน */
@@ -25,7 +25,7 @@
         }
 
         .container {
-            max-width: 1280px; /* ขยายให้กว้างขึ้นสำหรับคอลัมน์ใหม่ */
+            max-width: 1280px;
             margin: 0 auto;
         }
 
@@ -184,30 +184,24 @@
             color: #495057;
         }
 
+        /* Roommate Section in Card */
         .roommate-section {
             margin-top: 10px;
             background-color: #f1f3f5;
-            padding: 10px;
+            padding: 12px;
             border-radius: 8px;
             font-size: 14px;
-            display: none;
+            /* ลบ display: none; ออก เพื่อให้แสดงตลอด */
         }
         
-        .roommate-toggle-btn {
-            background: none;
-            border: none;
-            color: var(--primary-color);
-            font-size: 14px;
+        .roommate-header {
             font-weight: 600;
-            padding: 5px 0;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            width: 100%;
+            color: #003370; /* สีเดียวกับหัวตารางรูมเมท */
+            margin-bottom: 8px;
+            font-size: 15px;
         }
         
-        .roommate-toggle-btn svg { margin-left: 5px; transition: transform 0.3s ease; }
-        .roommate-toggle-btn.active svg { transform: rotate(180deg); }
+        /* ลบ .roommate-toggle-btn ออก เพราะไม่ได้ใช้แล้ว */
 
         /* Badges */
         .badge {
@@ -235,7 +229,7 @@
         }
 
         /* --- Media Query for Desktop --- */
-        @media (min-width: 992px) { /* ขยาย breakpoint สำหรับจอใหญ่ */
+        @media (min-width: 992px) {
             .table-container { display: block; }
             .card-container { display: none; }
             h1 { font-size: 28px; }
@@ -292,7 +286,7 @@
     </div>
 
     <script>
-        // ข้อมูล JSON ชุดใหม่
+        // ข้อมูล JSON ของคุณ (เหมือนเดิม)
         const guestData = [
   {
     "ลำดับ": 1,
@@ -855,7 +849,7 @@
   },
   {
     "ลำดับ": 44,
-    "หน่วยงาน": "สำนักงานสาธารณสุขอำเภอบางแก้ว",
+    "หน่วยงาน": "สำนักงานสาธารณสุขอำเภอบ้านแก้ว",
     "จังหวัดที่ตั้งของหน่วยงาน": "พัทลุง",
     "ชื่อ - สกุล": "นางมาธุพร พลพงษ์",
     "ประเภทการเข้าพัก": "พักคู่",
@@ -1219,7 +1213,7 @@
         function getUniqueProvinces(data) {
             const provinces = new Set();
             data.forEach(guest => {
-                if (guest['จังหวัดที่ตั้งของหน่วยงาน']) {
+                if (guest['จังหวัดที่ตั้งของหน่วยงาน'] && guest['จังหวัดที่ตั้งของหน่วยงาน'] !== 'พักเดี่ยว จ่ายส่วนต่าง' && guest['จังหวัดที่ตั้งของหน่วยงาน'] !== 'พักเดี่ยว') {
                     provinces.add(guest['จังหวัดที่ตั้งของหน่วยงาน']);
                 }
             });
@@ -1237,15 +1231,17 @@
             });
         }
 
-        // ฟังก์ชันเรียงลำดับข้อมูลตามจังหวัด (ก-ฮ)
+        // ฟังก์ชันเรียงลำดับข้อมูลตามจังหวัด (ก-ฮ) ของผู้เข้าพักหลัก
         function sortDataByProvince(data) {
             return [...data].sort((a, b) => {
                 const provA = a['จังหวัดที่ตั้งของหน่วยงาน'] || '';
                 const provB = b['จังหวัดที่ตั้งของหน่วยงาน'] || '';
+                // ตรวจสอบว่าไม่ใช่ข้อมูลขยะก่อนเรียง
+                if (provA === 'พักเดี่ยว จ่ายส่วนต่าง' || provA === 'พักเดี่ยว') return 1;
+                if (provB === 'พักเดี่ยว จ่ายส่วนต่าง' || provB === 'พักเดี่ยว') return -1;
                 return provA.localeCompare(provB, 'th');
             });
         }
-
 
         // --- ฟังก์ชันแสดงผล (Render) ---
 
@@ -1332,10 +1328,8 @@
                 let roommateSection = '';
                 if (isTwin && fullName2 !== '-' && fullName2 !== 'พักเดี่ยว') {
                     roommateSection = `
-                        <button class="roommate-toggle-btn" onclick="toggleRoommate(this)">
-                            ดูข้อมูลรูมเมท <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-                        </button>
                         <div class="roommate-section">
+                            <div class="roommate-header">ผู้เข้าพักร่วม (รูมเมท)</div>
                             <div style="margin-bottom: 5px;"><strong>ชื่อ-สกุล:</strong> ${fullName2}</div>
                             <div style="margin-bottom: 5px;"><strong>หน่วยงาน:</strong> ${dept2}</div>
                             <div><strong>จังหวัด:</strong> <span class="badge badge-prov">${prov2}</span></div>
@@ -1373,17 +1367,6 @@
                 cardContainer.appendChild(card);
             });
         }
-        
-        // ฟังก์ชันสำหรับปุ่มดูรูมเมทในมือถือ
-        window.toggleRoommate = function(btn) {
-            btn.classList.toggle('active');
-            const section = btn.nextElementSibling;
-            if (section.style.display === "block") {
-                section.style.display = "none";
-            } else {
-                section.style.display = "block";
-            }
-        }
 
         // ฟังก์ชันรวมสำหรับแสดงผล (เรียกทั้ง Table และ Cards)
         function renderAll(data) {
@@ -1401,7 +1384,6 @@
             renderTable(data);
             renderCards(data);
         }
-
 
         // --- ฟังก์ชันกรองข้อมูล (Filter & Search) ---
         function filterAndSortGuests() {
