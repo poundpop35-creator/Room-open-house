@@ -1,1 +1,0 @@
-# Room-open-house
